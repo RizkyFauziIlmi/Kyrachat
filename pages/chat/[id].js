@@ -33,11 +33,10 @@ const Chat = () => {
 
     const TopBar = ({ email }) => {
         return (
-            <Flex p={'1rem'} alignItems={'center'} justifyContent={'space-between'} boxShadow={'lg'}>
+            <Flex p={'1rem'} gap={'2rem'} alignItems={'center'} justifyContent={'space-between'} boxShadow={'lg'}>
                 <Flex gap={'0.5rem'} alignItems={'center'}>
                     <Avatar name={`${email}`} />
-                    <Heading size={'sm'}>{email}</Heading>
-
+                    <Heading size={'sm'} wordBreak={'break-word'}>{email}</Heading>
                 </Flex>
                 <IconButton ref={btnRef} onClick={drawer.onOpen} size={'sm'} icon={<HamburgerIcon />} display={['inherit', 'inherit', 'none', 'none']} />
             </Flex>

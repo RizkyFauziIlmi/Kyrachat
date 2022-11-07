@@ -13,7 +13,6 @@ export default function Home() {
       </Head>
       <Flex>
         <Sidebar />
-        <Box width={'100%'} bgColor={bg} height={'100vh'}></Box>
       </Flex>
     </div>
   )

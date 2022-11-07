@@ -3,10 +3,12 @@ import { ChatIcon } from '@chakra-ui/icons'
 import { Flex, Heading, Button, useToast } from '@chakra-ui/react'
 import { useSignInWithGoogle } from 'react-firebase-hooks/auth'
 import { auth } from "../firebase/firebaseConfig"
+import { useRouter } from "next/router"
 
 const Login = () => {
     const [signInWithGoogle] = useSignInWithGoogle(auth)
     const toast = useToast()
+    const router = useRouter()
 
     return (
         <Flex width={'100%'} height={'100vh'} justifyContent={'center'} alignItems={'center'}>
@@ -28,6 +30,7 @@ const Login = () => {
                 <ChatIcon fontSize={'100px'} color={'yellow'} />
                 <Button mt={'1rem'} onClick={() => signInWithGoogle("", { prompt: "select_account" }).then(() => {
                     toast({ title: `Login as ${auth.currentUser.email}`, status: "success" })
+                    router.push('/')
                 }).catch((error) => {
                     toast({title: "Login Failed", status: "error", description: `Error : ${error.message}`})
                 })}>Login with Google</Button>
