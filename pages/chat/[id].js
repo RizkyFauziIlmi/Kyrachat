@@ -77,7 +77,7 @@ const Chat = () => {
         return (
             messages?.map((message, index) => {
                 return (
-                    <Flex key={index} justifyContent={'flex-end'} boxShadow={'base'} p={'0.5rem'} flexDir={'column'} alignItems={message.sender === user.email ? 'flex-end' : 'flex-start'} color={message.sender === user.email ? 'black' : 'white'} bgColor={message.sender === user.email ? 'yellow' : 'blue.500'} maxW={'35rem'} wordBreak={'break-word'} minW={'50px'} width={'fit-content'} borderRadius={'0.5rem'} alignSelf={message.sender === user.email ? 'flex-end' : 'unset'}>
+                    <Flex key={index} justifyContent={'flex-end'} boxShadow={'base'} p={'0.5rem'} flexDir={'column'} alignItems={message.sender === user.email ? 'flex-end' : 'flex-start'} color={message.sender === user.email ? 'black' : 'white'} bgColor={message.sender === user.email ? 'yellow' : 'blue.500'} maxW={['70vw', '70vw', '65vw', '65vw']} wordBreak={'break-word'} minW={'50px'} width={'fit-content'} borderRadius={'0.5rem'} alignSelf={message.sender === user.email ? 'flex-end' : 'unset'}>
                         <Text>{message.text}</Text>
                         <Text opacity={0.5} fontSize={'xs'}>{new Date(message.timestamp?.seconds).toLocaleTimeString()}</Text>
                     </Flex>
