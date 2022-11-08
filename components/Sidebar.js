@@ -12,6 +12,7 @@ import {
     Divider,
     Input,
     Tabs,
+    AvatarBadge,
     TabList,
     HStack,
     Tab,
@@ -40,9 +41,11 @@ import getOtherEmail from '../utils/getOtherEmail'
 import { useRouter } from 'next/router'
 import { useState } from 'react'
 
-const Sidebar = ({ currentId }) => {
+const Sidebar = ({ currentId, callback }) => {
     const [user] = useAuthState(auth)
     const [snapshot] = useCollection(collection(db, 'chats'))
+    const [value] = useCollection(collection(db, 'users'))
+    const usersProfile = value?.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
     const chats = snapshot?.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
     const router = useRouter()
     const toast = useToast()
@@ -54,14 +57,37 @@ const Sidebar = ({ currentId }) => {
     const [RadioColor, setRadioColor] = useState(colorMode)
     const hover = useColorModeValue("yellow", "#212121")
 
+    const logout = async () => {
+        await signOut(auth).then(async () => {
+            toast({ title: "Logout Successful", status: "success", isClosable: true })
+            await updateDoc(doc(db, 'users', user.email), {
+                online: false
+            })
+        }).catch((error) => {
+            toast({ title: "Logout Failed", status: "error", description: `Error: ${error.message}`, isClosable: true })
+        })
+            .finally(() => {
+                router.push('/')
+            })
+    }
+
     const Chat = () => {
         return (
-            chats?.filter(chat => chat.users.includes(user.email) && chat.friend === true).map((chat, index) => {
+            chats?.filter(chat => chat.users.includes(user.email) && chat.friend === true).map((chat) => {
                 return (
-                    <Flex backgroundColor={chat.id === currentId ? hover : 'unset'} key={index} cursor={'pointer'} alignItems={'center'} gap={'0.5rem'} ml={'1rem'} mr={'1rem'} _hover={{ backgroundColor: hover }} p={'0.5rem'} borderRadius={'0.8rem'} onClick={() => router.push(`/chat/${chat.id}`)}>
-                        <Avatar name={`${chat.users}`} />
-                        <Text wordBreak={'break-word'}>{getOtherEmail(chat.users, user)}</Text>
-                    </Flex>
+                    usersProfile.filter((userProfile) => userProfile.email.includes(getOtherEmail(chat.users, user))).map((userProfile, index) => {
+                        return (
+                            <Flex backgroundColor={chat.id === currentId ? hover : 'unset'} key={index} cursor={'pointer'} alignItems={'center'} gap={'0.5rem'} ml={'1rem'} mr={'1rem'} _hover={{ backgroundColor: hover }} p={'0.5rem'} borderRadius={'0.8rem'} onClick={() => {
+                                router.push(`/chat/${chat.id}`, undefined, {scroll: true}) 
+                                callback()
+                            }} >
+                                <Avatar src={userProfile.imageUrl} name={userProfile.name} >
+                                    {userProfile.online ? <AvatarBadge boxSize='1.25em' bg='green.500' /> : ""}
+                                </Avatar>
+                                <Text wordBreak={'break-word'}>{userProfile.name}</Text>
+                            </Flex>
+                        )
+                    })
                 )
             })
         )
@@ -148,13 +174,25 @@ const Sidebar = ({ currentId }) => {
         }
     }
 
+    const DisplayProfile = () => {
+        return (
+            usersProfile?.filter((userprofile) => userprofile.email === user.email).map((userProfile, index) => {
+                return (
+                    <Flex alignItems={'center'} gap={"0.5rem"} key={index}>
+                        <Avatar name='rizky' src={userProfile.imageUrl} >
+                            {userProfile.online ? <AvatarBadge boxSize='1.25em' bg='green.500' /> : ""}
+                        </Avatar>
+                        <Text>{userProfile.name}</Text>
+                    </Flex>
+                )
+            })
+        )
+    }
+
     return (
-        <Flex flexDir={'column'} boxShadow={['none', 'none', 'dark-lg', 'dark-lg']} width={['100vw', '100vw', 'fit-content', 'fit-content']} height={'100vh'}>
-            <Flex alignItems={'center'} justifyContent={'space-between'} p={'0.5rem'}> 
-                <Flex alignItems={'center'} gap={"0.5rem"}>
-                    <Avatar name='rizky' src={user.photoURL} />
-                    <Text>{user.displayName}</Text>
-                </Flex>
+        <Flex flexDir={'column'} boxShadow={['none', 'none', 'dark-lg', 'dark-lg']} width={['100vw', '100vw', '35vw', '20vw']} height={'100vh'}>
+            <Flex alignItems={'center'} justifyContent={'space-between'} p={'0.5rem'}>
+                <DisplayProfile />
                 <Flex gap={'0.3rem'}>
                     <IconButton icon={<BellIcon />} onClick={pendingModal.onToggle} />
                     <IconButton icon={<SettingsIcon />} onClick={settingModal.onOpen} />
@@ -208,10 +246,7 @@ const Sidebar = ({ currentId }) => {
                                     </RadioGroup>
                                 </TabPanel>
                                 <TabPanel>
-                                    <Button onClick={() => signOut(auth).then(() => {
-                                        toast({ title: "Logout Successful", status: "success", isClosable: true })
-                                        router.push('/')
-                                    })}>Logout</Button>
+                                    <Button onClick={logout}>Logout</Button>
                                 </TabPanel>
                             </TabPanels>
                         </Tabs>

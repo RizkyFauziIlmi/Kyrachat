@@ -1,8 +1,8 @@
 import Sidebar from "../../components/Sidebar"
-import { Flex, Avatar, Text, Heading, useColorModeValue, Center, Drawer, DrawerOverlay, Box, DrawerContent, DrawerBody, DrawerCloseButton, DrawerHeader, DrawerFooter, useDisclosure, Input, IconButton, InputGroup, InputRightElement, Button } from '@chakra-ui/react'
+import { Flex, Avatar, Text, Heading, useColorModeValue, Center, Drawer, DrawerOverlay, Box, DrawerContent, DrawerBody, DrawerCloseButton, DrawerHeader, DrawerFooter, useDisclosure, Input, IconButton, InputGroup, InputRightElement, Button, AvatarBadge, VStack } from '@chakra-ui/react'
 import { HamburgerIcon, ArrowForwardIcon } from '@chakra-ui/icons'
 import { useRouter } from "next/router"
-import { useCollectionData, useDocumentData } from 'react-firebase-hooks/firestore'
+import { useCollectionData, useDocumentData, useCollection } from 'react-firebase-hooks/firestore'
 import { collection, doc, query, orderBy, addDoc, serverTimestamp } from 'firebase/firestore'
 import { auth, db } from "../../firebase/firebaseConfig"
 import { useAuthState } from 'react-firebase-hooks/auth'
@@ -14,6 +14,8 @@ const Chat = () => {
     const router = useRouter()
     const { id } = router.query
     const q = query(collection(db, `chats/${id}/messages`), orderBy("timestamp"))
+    const [value] = useCollection(collection(db, 'users'))
+    const usersProfile = value?.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
     const [messages] = useCollectionData(q)
     const [user] = useAuthState(auth)
     const [chat] = useDocumentData(doc(db, 'chats', id))
@@ -31,15 +33,24 @@ const Chat = () => {
         }, 100)
     }, [messages])
 
-    const TopBar = ({ email }) => {
+    const TopBar = () => {
         return (
-            <Flex p={'1rem'} gap={'2rem'} alignItems={'center'} justifyContent={'space-between'} boxShadow={'lg'}>
-                <Flex gap={'0.5rem'} alignItems={'center'}>
-                    <Avatar name={`${email}`} />
-                    <Heading size={'sm'} wordBreak={'break-word'}>{email}</Heading>
-                </Flex>
-                <IconButton ref={btnRef} onClick={drawer.onOpen} size={'sm'} icon={<HamburgerIcon />} display={['inherit', 'inherit', 'none', 'none']} />
-            </Flex>
+            usersProfile?.filter((userProfile) => userProfile.id === getOtherEmail(chat?.users, user)).map((userProfile, index) => {
+                return (
+                    <Flex key={index} boxShadow={'lg'} p={'0.5rem'} alignItems={'center'} justifyContent={'space-between'}>
+                        <Flex alignItems={'center'} gap={'0.2rem'}>
+                            <Avatar name={userProfile.name} src={userProfile.imageUrl} >
+                                {userProfile.online ? <AvatarBadge boxSize='1.25em' bg='green.500' /> : ""}
+                            </Avatar>
+                            <Flex flexDir={'column'} pl={'0.5rem'}>
+                                <Heading size={'sm'}>{userProfile.name}</Heading>
+                                <Text fontSize={'sm'} opacity={0.5}>{userProfile.online ? 'online' : 'offline'}</Text>
+                            </Flex>
+                        </Flex>
+                        <IconButton icon={<HamburgerIcon />} onClick={drawer.onOpen} display={['unset', 'unset', 'none', 'none']} />
+                    </Flex>
+                )
+            })
         )
     }
 
@@ -73,13 +84,13 @@ const Chat = () => {
     }
 
 
-    const getMessages = () => {
+    const GetMessages = () => {
         return (
             messages?.map((message, index) => {
                 return (
                     <Flex key={index} justifyContent={'flex-end'} boxShadow={'base'} p={'0.5rem'} flexDir={'column'} alignItems={message.sender === user.email ? 'flex-end' : 'flex-start'} color={message.sender === user.email ? 'black' : 'white'} bgColor={message.sender === user.email ? 'yellow' : 'blue.500'} maxW={['70vw', '70vw', '65vw', '65vw']} wordBreak={'break-word'} minW={'50px'} width={'fit-content'} borderRadius={'0.5rem'} alignSelf={message.sender === user.email ? 'flex-end' : 'unset'}>
                         <Text>{message.text}</Text>
-                        <Text opacity={0.5} fontSize={'xs'}>{new Date(message.timestamp?.seconds).toLocaleTimeString()}</Text>
+                        <Text opacity={0.5} fontSize={'xs'}>{new Date(message.timestamp?.seconds * 1000).toLocaleTimeString()}</Text>
                     </Flex>
                 )
             })
@@ -96,9 +107,9 @@ const Chat = () => {
                     <Sidebar currentId={id} />
                 </Box>
                 <Flex flex={1} flexDir={'column'} bgColor={bg} width={'100%'} height={'100vh'}>
-                    <TopBar email={getOtherEmail(chat?.users, user)} />
+                    <TopBar />
                     <Flex flex={1} overflow={'auto'} sx={{ scrollbarWidth: "none" }} flexDir={'column'} gap={'1rem'} p={'1rem'}>
-                        {getMessages()}
+                        <GetMessages />
                         <div ref={bottomOfChat}></div>
                     </Flex>
                     <BottomBar />
@@ -114,7 +125,7 @@ const Chat = () => {
                 <DrawerContent>
                     <DrawerBody>
                         <Center>
-                            <Sidebar currentId={id} />
+                            <Sidebar currentId={id} callback={drawer.onClose}/>
                         </Center>
                     </DrawerBody>
                     <DrawerFooter>
