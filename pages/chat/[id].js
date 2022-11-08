@@ -23,6 +23,7 @@ const Chat = () => {
     const bg = useColorModeValue("#FFFFFF", "#212121")
     const drawer = useDisclosure()
     const btnRef = useRef(null)
+    const profile = usersProfile?.filter((userProfile) => userProfile.id === getOtherEmail(chat?.users, user))
 
     useEffect(() => {
         setTimeout(() => {
@@ -32,27 +33,6 @@ const Chat = () => {
             })
         }, 100)
     }, [messages])
-
-    const TopBar = () => {
-        return (
-            usersProfile?.filter((userProfile) => userProfile.id === getOtherEmail(chat?.users, user)).map((userProfile, index) => {
-                return (
-                    <Flex key={index} boxShadow={'lg'} p={'0.5rem'} alignItems={'center'} justifyContent={'space-between'}>
-                        <Flex alignItems={'center'} gap={'0.2rem'}>
-                            <Avatar name={userProfile.name} src={userProfile.imageUrl} >
-                                {userProfile.online ? <AvatarBadge boxSize='1.25em' bg='green.500' /> : ""}
-                            </Avatar>
-                            <Flex flexDir={'column'} pl={'0.5rem'}>
-                                <Heading size={'sm'}>{userProfile.name}</Heading>
-                                <Text fontSize={'sm'} opacity={0.5}>{userProfile.online ? 'online' : 'offline'}</Text>
-                            </Flex>
-                        </Flex>
-                        <IconButton icon={<HamburgerIcon />} onClick={drawer.onOpen} display={['unset', 'unset', 'none', 'none']} />
-                    </Flex>
-                )
-            })
-        )
-    }
 
     const BottomBar = () => {
         const [message, setMessage] = useState("")
@@ -104,10 +84,25 @@ const Chat = () => {
             </Head>
             <Flex overflow={'hidden'}>
                 <Box display={['none', 'none', 'flex', 'flex']}>
-                    <Sidebar currentId={id} />
+                    <Sidebar currentId={id} callback={() => { }} />
                 </Box>
                 <Flex flex={1} flexDir={'column'} bgColor={bg} width={'100%'} height={'100vh'}>
-                    <TopBar />
+                    {profile?.map((userProfile, index) => {
+                        return (
+                            <Flex key={index} boxShadow={'lg'} p={'0.5rem'} alignItems={'center'} justifyContent={'space-between'}>
+                                <Flex alignItems={'center'} gap={'0.2rem'}>
+                                    <Avatar name={userProfile.name} src={userProfile.imageUrl} >
+                                        {userProfile.online ? <AvatarBadge boxSize='1.25em' bg='green.500' /> : ""}
+                                    </Avatar>
+                                    <Flex flexDir={'column'} pl={'0.5rem'}>
+                                        <Heading size={'sm'}>{userProfile.name}</Heading>
+                                        <Text fontSize={'sm'} opacity={0.5}>{userProfile.online ? 'online' : 'offline'}</Text>
+                                    </Flex>
+                                </Flex>
+                                <IconButton icon={<HamburgerIcon />} onClick={drawer.onOpen} display={['unset', 'unset', 'none', 'none']} />
+                            </Flex>
+                        )
+                    })}
                     <Flex flex={1} overflow={'auto'} sx={{ scrollbarWidth: "none" }} flexDir={'column'} gap={'1rem'} p={'1rem'}>
                         <GetMessages />
                         <div ref={bottomOfChat}></div>
@@ -125,7 +120,7 @@ const Chat = () => {
                 <DrawerContent>
                     <DrawerBody>
                         <Center>
-                            <Sidebar currentId={id} callback={drawer.onClose}/>
+                            <Sidebar currentId={id} callback={drawer.onClose} />
                         </Center>
                     </DrawerBody>
                     <DrawerFooter>

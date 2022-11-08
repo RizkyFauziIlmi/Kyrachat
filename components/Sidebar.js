@@ -29,6 +29,8 @@ import {
     useColorMode,
     useColorModeValue,
     ModalCloseButton,
+    FormControl,
+    FormLabel,
 } from '@chakra-ui/react'
 import { ArrowLeftIcon, SettingsIcon, EmailIcon, EditIcon, BellIcon } from '@chakra-ui/icons'
 import { signOut } from 'firebase/auth'
@@ -47,6 +49,8 @@ const Sidebar = ({ currentId, callback }) => {
     const [value] = useCollection(collection(db, 'users'))
     const usersProfile = value?.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
     const chats = snapshot?.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+    const chatList = chats?.filter(chat => chat.users.includes(user.email) && chat.friend === true)
+    const profile = usersProfile?.filter((userprofile) => userprofile.email === user.email)
     const router = useRouter()
     const toast = useToast()
     const newChatModal = useDisclosure()
@@ -55,6 +59,10 @@ const Sidebar = ({ currentId, callback }) => {
     const { setColorMode, colorMode } = useColorMode()
     const [email, setEmail] = useState("")
     const [RadioColor, setRadioColor] = useState(colorMode)
+    const [imageUrlInput, setImageUrlInput] = useState("")
+    const [displayNameInput, setDisplayNameInput] = useState("")
+    const [bioInput, setBioInput] = useState("")
+    const [change, setChange] = useState(false)
     const hover = useColorModeValue("yellow", "#212121")
 
     const logout = async () => {
@@ -69,28 +77,6 @@ const Sidebar = ({ currentId, callback }) => {
             .finally(() => {
                 router.push('/')
             })
-    }
-
-    const Chat = () => {
-        return (
-            chats?.filter(chat => chat.users.includes(user.email) && chat.friend === true).map((chat) => {
-                return (
-                    usersProfile.filter((userProfile) => userProfile.email.includes(getOtherEmail(chat.users, user))).map((userProfile, index) => {
-                        return (
-                            <Flex backgroundColor={chat.id === currentId ? hover : 'unset'} key={index} cursor={'pointer'} alignItems={'center'} gap={'0.5rem'} ml={'1rem'} mr={'1rem'} _hover={{ backgroundColor: hover }} p={'0.5rem'} borderRadius={'0.8rem'} onClick={() => {
-                                router.push(`/chat/${chat.id}`, undefined, {scroll: true}) 
-                                callback()
-                            }} >
-                                <Avatar src={userProfile.imageUrl} name={userProfile.name} >
-                                    {userProfile.online ? <AvatarBadge boxSize='1.25em' bg='green.500' /> : ""}
-                                </Avatar>
-                                <Text wordBreak={'break-word'}>{userProfile.name}</Text>
-                            </Flex>
-                        )
-                    })
-                )
-            })
-        )
     }
 
     const acceptFriend = async (id, email) => {
@@ -148,6 +134,24 @@ const Sidebar = ({ currentId, callback }) => {
         )
     }
 
+    const updateProfile = async () => {
+        if (change) {
+            await updateDoc(doc(db, 'users', user.email), {
+                bio: bioInput,
+                imageUrl: imageUrlInput,
+                name: displayNameInput
+            })
+                .then(() => {
+                    toast({
+                        title: "Profile Updated",
+                        status: "success",
+                        isClosable: true
+                    })
+                    setChange(false)
+                })
+        }
+    }
+
     const chatExist = (email) => chats?.find((chat) => (chat.users.includes(user.email) && chat.users.includes(email)))
 
     const newChat = async (input) => {
@@ -174,25 +178,19 @@ const Sidebar = ({ currentId, callback }) => {
         }
     }
 
-    const DisplayProfile = () => {
-        return (
-            usersProfile?.filter((userprofile) => userprofile.email === user.email).map((userProfile, index) => {
-                return (
-                    <Flex alignItems={'center'} gap={"0.5rem"} key={index}>
-                        <Avatar name='rizky' src={userProfile.imageUrl} >
-                            {userProfile.online ? <AvatarBadge boxSize='1.25em' bg='green.500' /> : ""}
-                        </Avatar>
-                        <Text>{userProfile.name}</Text>
-                    </Flex>
-                )
-            })
-        )
-    }
-
     return (
         <Flex flexDir={'column'} boxShadow={['none', 'none', 'dark-lg', 'dark-lg']} width={['100vw', '100vw', '35vw', '20vw']} height={'100vh'}>
             <Flex alignItems={'center'} justifyContent={'space-between'} p={'0.5rem'}>
-                <DisplayProfile />
+                {profile?.map((value, index) => {
+                    return (
+                        <Flex alignItems={'center'} gap={"0.5rem"} key={index}>
+                            <Avatar name={value.name} src={value.imageUrl} >
+                                {value.online ? <AvatarBadge boxSize='1.25em' bg='green.500' /> : ""}
+                            </Avatar>
+                            <Text>{value.name}</Text>
+                        </Flex>
+                    )
+                })}
                 <Flex gap={'0.3rem'}>
                     <IconButton icon={<BellIcon />} onClick={pendingModal.onToggle} />
                     <IconButton icon={<SettingsIcon />} onClick={settingModal.onOpen} />
@@ -216,7 +214,23 @@ const Sidebar = ({ currentId, callback }) => {
                 </Collapse>
             </Flex>
             <Flex flexDir={'column'} sx={{ scrollbarWidth: "0px" }} gap={'0.5rem'} overflowY={'auto'} overflowX={'hidden'}>
-                <Chat />
+                {chatList?.map((chat) => {
+                    return (
+                        usersProfile.filter((value) => value.email.includes(getOtherEmail(chat.users, user))).map((userProfile, index) => {
+                            return (
+                                <Flex backgroundColor={chat.id === currentId ? hover : 'unset'} key={index} cursor={'pointer'} alignItems={'center'} gap={'0.5rem'} ml={'1rem'} mr={'1rem'} _hover={{ backgroundColor: hover }} p={'0.5rem'} borderRadius={'0.8rem'} onClick={() => {
+                                    router.push(`/chat/${chat.id}`, undefined, { scroll: true })
+                                    callback()
+                                }} >
+                                    <Avatar src={userProfile.imageUrl} name={userProfile.name} >
+                                        {userProfile.online ? <AvatarBadge boxSize='1.25em' bg='green.500' /> : ""}
+                                    </Avatar>
+                                    <Text wordBreak={'break-word'}>{userProfile.name}</Text>
+                                </Flex>
+                            )
+                        })
+                    )
+                })}
             </Flex>
             <Modal isCentered isOpen={settingModal.isOpen} onClose={settingModal.onClose}>
                 <ModalOverlay />
@@ -224,7 +238,13 @@ const Sidebar = ({ currentId, callback }) => {
                     <ModalHeader textAlign={'center'}>Setting ⚙️</ModalHeader>
                     <ModalCloseButton />
                     <ModalBody>
-                        <Tabs isFitted rounded variant='line'>
+                        <Tabs isFitted rounded variant='line' onChange={() => {
+                            profile?.map((value) => {
+                                setImageUrlInput(value.imageUrl)
+                                setDisplayNameInput(value.name)
+                                setBioInput(value.bio)
+                            })
+                        }}>
                             <TabList mb='1em'>
                                 <Tab>General</Tab>
                                 <Tab>Account</Tab>
@@ -246,6 +266,34 @@ const Sidebar = ({ currentId, callback }) => {
                                     </RadioGroup>
                                 </TabPanel>
                                 <TabPanel>
+                                    {profile?.map((value, index) => {
+                                        return (
+                                            <Flex key={index} flexDir={'column'} alignItems={'center'}>
+                                                <Avatar name={value.name} src={imageUrlInput === "" ? value.imageUrl : imageUrlInput} size={'2xl'} />
+                                                <FormControl>
+                                                    <FormLabel>Image Url</FormLabel>
+                                                    <Input defaultValue={value.imageUrl} onChange={(event) => {
+                                                        setImageUrlInput(event.target.value)
+                                                        setChange(true)
+                                                    }} />
+                                                </FormControl>
+                                                <FormControl>
+                                                    <FormLabel>Display Name</FormLabel>
+                                                    <Input defaultValue={value.name} onChange={(event) => {
+                                                        setDisplayNameInput(event.target.value)
+                                                        setChange(true)
+                                                    }} />
+                                                </FormControl>
+                                                <FormControl>
+                                                    <FormLabel>Bio</FormLabel>
+                                                    <Input defaultValue={value.bio} onChange={(event) => {
+                                                        setBioInput(event.target.value)
+                                                        setChange(true)
+                                                    }} />
+                                                </FormControl>
+                                            </Flex>
+                                        )
+                                    })}
                                     <Button onClick={logout}>Logout</Button>
                                 </TabPanel>
                             </TabPanels>
@@ -256,6 +304,7 @@ const Sidebar = ({ currentId, callback }) => {
                         <Button rightIcon={<EditIcon />} colorScheme='blue' mr={3} onClick={() => {
                             settingModal.onClose()
                             setColorMode(RadioColor)
+                            updateProfile()
                         }}>
                             Save
                         </Button>
