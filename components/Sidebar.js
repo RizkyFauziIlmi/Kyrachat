@@ -41,7 +41,7 @@ import { collection, doc, addDoc, updateDoc, deleteDoc } from 'firebase/firestor
 import { db } from '../firebase/firebaseConfig'
 import getOtherEmail from '../utils/getOtherEmail'
 import { useRouter } from 'next/router'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 const Sidebar = ({ currentId, callback }) => {
     const [user] = useAuthState(auth)
@@ -63,6 +63,7 @@ const Sidebar = ({ currentId, callback }) => {
     const [displayNameInput, setDisplayNameInput] = useState("")
     const [bioInput, setBioInput] = useState("")
     const [change, setChange] = useState(false)
+    const [requestCount, setRequestCount] = useState(0)
     const hover = useColorModeValue("yellow", "#212121")
 
     const logout = async () => {
@@ -114,6 +115,10 @@ const Sidebar = ({ currentId, callback }) => {
             })
         })
     }
+
+    useEffect(() => {
+        setRequestCount(chats?.filter(chat => chat.users.includes(user.email) && chat.friend === false && chat.sender !== user.email).length)
+    }, [chats, user.email])
 
     const PendingChat = () => {
         return (
@@ -192,7 +197,7 @@ const Sidebar = ({ currentId, callback }) => {
                     )
                 })}
                 <Flex gap={'0.3rem'}>
-                    <IconButton icon={<BellIcon />} onClick={pendingModal.onToggle} />
+                    {requestCount === 0 ? <IconButton icon={<BellIcon />} /> : <Button leftIcon={<BellIcon />} rightIcon={<Text>{requestCount}</Text>} onClick={pendingModal.onToggle} />}
                     <IconButton icon={<SettingsIcon />} onClick={settingModal.onOpen} />
                 </Flex>
             </Flex>
