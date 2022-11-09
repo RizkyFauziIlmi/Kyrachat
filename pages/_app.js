@@ -3,6 +3,7 @@ import { ChakraProvider, Spinner, Flex, extendTheme } from '@chakra-ui/react'
 import { useAuthState } from 'react-firebase-hooks/auth'
 import { auth } from "../firebase/firebaseConfig"
 import { mode } from '@chakra-ui/theme-tools'
+import Loading from "../components/Loading"
 
 const styles = {
   global: props => ({
@@ -57,9 +58,7 @@ function MyApp({ Component, pageProps }) {
   if (loading) {
     return (
       <ChakraProvider theme={theme}>
-        <Flex bgColor={'#121212'} width={'100%'} height={'100vh'} justifyContent={'center'} alignItems={'center'}>
-          <Spinner size={'xl'} />
-        </Flex>
+        <Loading />
       </ChakraProvider>
     )
   }

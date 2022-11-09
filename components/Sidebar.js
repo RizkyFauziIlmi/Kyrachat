@@ -221,7 +221,7 @@ const Sidebar = ({ currentId, callback }) => {
             <Flex flexDir={'column'} sx={{ scrollbarWidth: "0px" }} gap={'0.5rem'} overflowY={'auto'} overflowX={'hidden'}>
                 {chatList?.map((chat) => {
                     return (
-                        usersProfile.filter((value) => value.email.includes(getOtherEmail(chat.users, user))).map((userProfile, index) => {
+                        usersProfile?.filter((value) => value.email.includes(getOtherEmail(chat.users, user))).map((userProfile, index) => {
                             return (
                                 <Flex backgroundColor={chat.id === currentId ? hover : 'unset'} key={index} cursor={'pointer'} alignItems={'center'} gap={'0.5rem'} ml={'1rem'} mr={'1rem'} _hover={{ backgroundColor: hover }} p={'0.5rem'} borderRadius={'0.8rem'} onClick={() => {
                                     router.push(`/chat/${chat.id}`, undefined, { scroll: true })

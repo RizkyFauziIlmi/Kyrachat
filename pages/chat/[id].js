@@ -1,5 +1,5 @@
 import Sidebar from "../../components/Sidebar"
-import { Flex, Avatar, Text, Heading, useColorModeValue, Center, Drawer, DrawerOverlay, Box, DrawerContent, DrawerBody, DrawerCloseButton, DrawerHeader, DrawerFooter, useDisclosure, Input, IconButton, InputGroup, InputRightElement, Button, AvatarBadge, VStack } from '@chakra-ui/react'
+import { Flex, Avatar, Text, Heading, useColorModeValue, Center, Drawer, DrawerOverlay, Box, DrawerContent, DrawerBody, DrawerCloseButton, DrawerHeader, DrawerFooter, useDisclosure, Input, IconButton, InputGroup, InputRightElement, Button, AvatarBadge, VStack, Spinner } from '@chakra-ui/react'
 import { HamburgerIcon, ArrowForwardIcon } from '@chakra-ui/icons'
 import { useRouter } from "next/router"
 import { useCollectionData, useDocumentData, useCollection } from 'react-firebase-hooks/firestore'
@@ -9,12 +9,16 @@ import { useAuthState } from 'react-firebase-hooks/auth'
 import getOtherEmail from "../../utils/getOtherEmail"
 import { useEffect, useRef, useState } from "react"
 import Head from "next/head"
+import { isEmpty } from "@firebase/util"
 
 const Chat = () => {
     const router = useRouter()
     const { id } = router.query
     const q = query(collection(db, `chats/${id}/messages`), orderBy("timestamp"))
     const [value] = useCollection(collection(db, 'users'))
+    const [snapshot] = useCollection(collection(db, 'chats'))
+    const chats = snapshot?.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+    const chatData = chats?.filter((chat) => chat.id === id)
     const usersProfile = value?.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
     const [messages] = useCollectionData(q)
     const [user] = useAuthState(auth)
@@ -32,7 +36,17 @@ const Chat = () => {
                 block: "start"
             })
         }, 100)
-    }, [messages])
+
+        chatData?.map((chat) => {
+            if (!chat.friend) {
+                router.push("/")
+            } 
+        })
+
+        if (chatData?.length === 0) {
+            router.push("/")
+        }
+    }, [chatData, id, messages, router])
 
     const BottomBar = () => {
         const [message, setMessage] = useState("")
