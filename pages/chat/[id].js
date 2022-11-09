@@ -1,15 +1,15 @@
 import Sidebar from "../../components/Sidebar"
 import { Flex, Avatar, Text, Heading, useColorModeValue, Center, Drawer, DrawerOverlay, Box, DrawerContent, DrawerBody, DrawerCloseButton, DrawerHeader, DrawerFooter, useDisclosure, Input, IconButton, InputGroup, InputRightElement, Button, AvatarBadge, VStack, Spinner } from '@chakra-ui/react'
-import { HamburgerIcon, ArrowForwardIcon } from '@chakra-ui/icons'
+import { HamburgerIcon, ArrowForwardIcon, CheckIcon, ViewOffIcon, ViewIcon } from '@chakra-ui/icons'
 import { useRouter } from "next/router"
 import { useCollectionData, useDocumentData, useCollection } from 'react-firebase-hooks/firestore'
-import { collection, doc, query, orderBy, addDoc, serverTimestamp } from 'firebase/firestore'
+import { collection, doc, query, orderBy, addDoc, serverTimestamp, updateDoc, setDoc } from 'firebase/firestore'
 import { auth, db } from "../../firebase/firebaseConfig"
 import { useAuthState } from 'react-firebase-hooks/auth'
 import getOtherEmail from "../../utils/getOtherEmail"
 import { useEffect, useRef, useState } from "react"
 import Head from "next/head"
-import { isEmpty } from "@firebase/util"
+import useIntersection from "../../utils/useIntersection"
 
 const Chat = () => {
     const router = useRouter()
@@ -21,6 +21,8 @@ const Chat = () => {
     const chatData = chats?.filter((chat) => chat.id === id)
     const usersProfile = value?.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
     const [messages] = useCollectionData(q)
+    const [message] = useCollection(q)
+    const messageId = message?.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
     const [user] = useAuthState(auth)
     const [chat] = useDocumentData(doc(db, 'chats', id))
     const bottomOfChat = useRef(null)
@@ -28,8 +30,20 @@ const Chat = () => {
     const drawer = useDisclosure()
     const btnRef = useRef(null)
     const profile = usersProfile?.filter((userProfile) => userProfile.id === getOtherEmail(chat?.users, user))
+    const messageRef = useRef(null)
+    const inViewPort = useIntersection(messageRef, '0px')
+
+
 
     useEffect(() => {
+        const updateSeen = () => {
+            messageId?.filter((value) => value.sender !== user.email && !value.seen).map(async (value) => {
+                await updateDoc(doc(db, `chats/${id}/messages`, value.id), {
+                    seen: true
+                })
+            })
+        }
+
         setTimeout(() => {
             bottomOfChat.current.scrollIntoView({
                 behavior: "smooth",
@@ -37,16 +51,21 @@ const Chat = () => {
             })
         }, 100)
 
+        if (inViewPort) {
+            updateSeen()
+        }
+
         chatData?.map((chat) => {
             if (!chat.friend) {
                 router.push("/")
-            } 
+            }
         })
 
         if (chatData?.length === 0) {
             router.push("/")
         }
-    }, [chatData, id, messages, router])
+
+    }, [chatData, id, inViewPort, messageId, router, user.email])
 
     const BottomBar = () => {
         const [message, setMessage] = useState("")
@@ -56,7 +75,8 @@ const Chat = () => {
             await addDoc(collection(db, `chats/${id}/messages`), {
                 text: message,
                 sender: user.email,
-                timestamp: serverTimestamp()
+                timestamp: serverTimestamp(),
+                seen: false
             })
                 .then(() => {
                     setMessage("")
@@ -84,7 +104,7 @@ const Chat = () => {
                 return (
                     <Flex key={index} justifyContent={'flex-end'} boxShadow={'base'} p={'0.5rem'} flexDir={'column'} alignItems={message.sender === user.email ? 'flex-end' : 'flex-start'} color={message.sender === user.email ? 'black' : 'white'} bgColor={message.sender === user.email ? 'yellow' : 'blue.500'} maxW={['70vw', '70vw', '65vw', '65vw']} wordBreak={'break-word'} minW={'50px'} width={'fit-content'} borderRadius={'0.5rem'} alignSelf={message.sender === user.email ? 'flex-end' : 'unset'}>
                         <Text>{message.text}</Text>
-                        <Text opacity={0.5} fontSize={'xs'}>{new Date(message.timestamp?.seconds * 1000).toLocaleTimeString()}</Text>
+                        <Text opacity={0.5} fontSize={'xs'}>{new Date(message.timestamp?.seconds * 1000).toLocaleTimeString()} {message.sender === user.email && !message.seen ? <ViewOffIcon /> : ""}{message.sender === user.email && message.seen ? <ViewIcon color={'blue'} /> : ""}</Text>
                     </Flex>
                 )
             })
@@ -96,7 +116,7 @@ const Chat = () => {
             <Head>
                 <title>Chat with | {getOtherEmail(chat?.users, user)}</title>
             </Head>
-            <Flex overflow={'hidden'}>
+            <Flex overflow={'hidden'} ref={messageRef}>
                 <Box display={['none', 'none', 'flex', 'flex']}>
                     <Sidebar currentId={id} callback={() => { }} />
                 </Box>
