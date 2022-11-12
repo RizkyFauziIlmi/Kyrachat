@@ -32,10 +32,20 @@ const Chat = () => {
     const profile = usersProfile?.filter((userProfile) => userProfile.id === getOtherEmail(chat?.users, user))
     const messageRef = useRef(null)
     const inViewPort = useIntersection(messageRef, '0px')
+    const inputRef = useRef()
 
+    const handleEnter = (event) => {
+        if (event.key === "Enter") {
+            inputRef.current.focus()
+        }
+    }
 
 
     useEffect(() => {
+        window.addEventListener('keydown', handleEnter)
+
+        return () => window.removeEventListener('keydown', handleEnter)
+
         const updateSeen = () => {
             messageId?.filter((value) => value.sender !== user.email && !value.seen).map(async (value) => {
                 await updateDoc(doc(db, `chats/${id}/messages`, value.id), {
@@ -88,7 +98,7 @@ const Chat = () => {
                 <InputGroup>
                     <Input onChange={event => setMessage(event.target.value)} autoComplete="off" placeholder="Type a message..." variant={'filled'} />
                     <InputRightElement width='4.5rem'>
-                        <Button isDisabled={message === null || message.match(/^ *$/) !== null ? true : false} onClick={sendMessage} h='1.75rem' size='sm' mr={'0.5rem'} rightIcon={<ArrowForwardIcon />} colorScheme={'yellow'}>
+                        <Button ref={inputRef} isDisabled={message === null || message.match(/^ *$/) !== null ? true : false} onClick={sendMessage} h='1.75rem' size='sm' mr={'0.5rem'} rightIcon={<ArrowForwardIcon />} colorScheme={'yellow'}>
                             Send
                         </Button>
                     </InputRightElement>
